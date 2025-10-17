@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐹 Game Đập Chuột - Mưa Sao Bay ✨</title>
+  <style>
+    body {
+      background: #fffde7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    h1 {
+      color: #4e342e;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px #d7ccc8;
+    }
+
+    .score-board {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #3e2723;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+    }
+
+    .hole {
+      background: #a5d6a7;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hole.active {
+      background: #81c784;
+    }
+
+    .mole {
+      width: 60px;
+      height: 60px;
+      background: url('https://cdn-icons-png.flaticon.com/512/616/616408.png') center/contain no-repeat;
+      animation: pop 0.3s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform: translateY(100%) scale(0.5); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    /* ⭐ Sao tỏa ra */
+    .star {
+      position: absolute;
+      font-size: 16px;
+      color: gold;
+      pointer-events: none;
+      opacity: 0.9;
+      text-shadow: 0 0 5px #ffeb3b;
+      animation: starFly 0.8s ease-out forwards;
+    }
+
+    @keyframes starFly {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--x), var(--y)) scale(0.3); opacity: 0; }
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: none;
+      background: #4caf50;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #43a047;
+    }
+
+    audio {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐹 Game Đập Chuột 🐹</h1>
+  <div class="score-board">
+    <div>Điểm: <span id="score">0</span></div>
+    <div>Thời gian: <span id="time">30</span>s</div>
+  </div>
+
+  <div class="grid">
+    <div class="hole" id="hole1"></div>
+    <div class="hole" id="hole2"></div>
+    <div class="hole" id="hole3"></div>
+    <div class="hole" id="hole4"></div>
+    <div class="hole" id="hole5"></div>
+    <div class="hole" id="hole6"></div>
+    <div class="hole" id="hole7"></div>
+    <div class="hole" id="hole8"></div>
+    <div class="hole" id="hole9"></div>
+  </div>
+
+  <button id="startBtn">Bắt đầu</button>
+
+  <!-- Âm thanh -->
+  <audio id="hitSound" src="https://www.myinstants.com/media/sounds/cartoon-pop.mp3"></audio>
+
+  <script>
+    const holes = document.querySelectorAll('.hole');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const startBtn = document.getElementById('startBtn');
+    const hitSound = document.getElementById('hitSound');
+
+    let lastHole;
+    let timeUp = false;
+    let score = 0;
+    let timeLeft = 30;
+    let countdownTimer;
+
+    function randomHole() {
+      const index = Math.floor(Math.random() * holes.length);
+      const hole = holes[index];
+      if (hole === lastHole) return randomHole();
+      lastHole = hole;
+      return hole;
+    }
+
+    // 🌟 Tạo nhiều ngôi sao tỏa ra
+    function createStars(hole) {
+      const numStars = 6; // số lượng sao mỗi lần đập
+      for (let i = 0; i < numStars; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        star.textContent = '⭐';
+        
+        // Góc bay ngẫu nhiên
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = 40 + Math.random() * 20; // px
+        const x = Math.cos(angle) * distance + 'px';
+        const y = Math.sin(angle) * -distance + 'px'; // bay lên trên
+
+        star.style.setProperty('--x', x);
+        star.style.setProperty('--y', y);
+
+        star.style.left = '50%';
+        star.style.top = '50%';
+        star.style.transform = 'translate(-50%, -50%)';
+        hole.appendChild(star);
+
+        setTimeout(() => star.remove(), 800);
+      }
+    }
+
+    function showMole() {
+      const hole = randomHole();
+      const mole = document.createElement('div');
+      mole.classList.add('mole');
+      hole.appendChild(mole);
+      hole.classList.add('active');
+
+      mole.addEventListener('click', () => {
+        if (!timeUp) {
+          score++;
+          scoreEl.textContent = score;
+          hitSound.currentTime = 0;
+          hitSound.play();
+
+          createStars(hole); // 🌟 tạo mưa sao
+
+          hole.removeChild(mole);
+          hole.classList.remove('active');
+        }
+      });
+
+      const time = Math.random() * 400 + 600;
+      setTimeout(() => {
+        if (hole.contains(mole)) {
+          hole.removeChild(mole);
+          hole.classList.remove('active');
+        }
+        if (!timeUp) showMole();
+      }, time);
+    }
+
+    function startGame() {
+      score = 0;
+      scoreEl.textContent = score;
+      timeLeft = 30;
+      timeEl.textContent = timeLeft;
+      timeUp = false;
+      startBtn.disabled = true;
+      showMole();
+
+      countdownTimer = setInterval(() => {
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(countdownTimer);
+          timeUp = true;
+          startBtn.disabled = false;
+          alert(`⏰ Hết giờ! Bạn được ${score} điểm!`);
+        }
+      }, 1000);
+    }
+
+    startBtn.addEventListener('click', startGame);
+  </script>
+</body>
+</html>
